@@ -5,45 +5,40 @@ import { Button } from '../components/button';
 
 export const TooltipExample = () => {
   return (
-    <div className="flex items-end gap-3">
-      <InitialImpl />
-      <FinalImpl />
-      <StateImpl />
-    </div>
-  );
-};
-
-const InitialImpl = () => {
-  const [tooltipShown, setTooltipShown] = React.useState(false);
-
-  return (
-    <div className="relative inline-block">
-      <Button
-        onFocus={() => setTooltipShown(true)}
-        onBlur={() => setTooltipShown(false)}
-        onMouseEnter={() => setTooltipShown(true)}
-        onMouseLeave={() => setTooltipShown(false)}
-      >
-        Button
-      </Button>
-      {tooltipShown && (
-        <div className="absolute top-full left-0 p-3 shadow mt-1">
-          <p>Some tooltip content that is not essential</p>
-        </div>
-      )}
+    <div className="max-w-4xl mx-auto">
+      <div className="prose mb-12">
+        <h1>Tooltip</h1>
+        <h2>Instructions</h2>
+        <p>Enhance the tooltip as specified:</p>
+        <ol>
+          <li>When button is clicked, the tooltip should be hidden.</li>
+          <li>
+            When mouse hover the button, wait for 0.5s before show the tooltip.
+          </li>
+          <li>
+            When mouse leave the button or tooltip, wait for 1s before hide the
+            tooltip.
+          </li>
+          <li>When mouse hover the tooltip, keep it visible.</li>
+        </ol>
+      </div>
+      <div className="flex items-end gap-3">
+        <Tooltip />
+        <TooltipAlt />
+      </div>
     </div>
   );
 };
 
 type TooltipState = 'hidden' | 'showing' | 'shown' | 'hiding';
 
-const FinalImpl = () => {
+const Tooltip = () => {
   const [tooltipState, setTooltipState] =
     React.useState<TooltipState>('hidden');
 
   React.useEffect(() => {
     if (tooltipState === 'showing') {
-      const timer = window.setTimeout(() => setTooltipState('shown'), 400);
+      const timer = window.setTimeout(() => setTooltipState('shown'), 500);
 
       return () => window.clearTimeout(timer);
     }
@@ -51,63 +46,61 @@ const FinalImpl = () => {
 
   React.useEffect(() => {
     if (tooltipState === 'hiding') {
-      const timer = window.setTimeout(() => setTooltipState('hidden'), 600);
+      const timer = window.setTimeout(() => setTooltipState('hidden'), 1000);
 
       return () => window.clearTimeout(timer);
     }
   }, [tooltipState]);
 
   return (
-    <div>
-      <div>{tooltipState}</div>
-      <div className="relative">
-        <Button
-          onMouseEnter={() => setTooltipState('showing')}
+    <div className="relative inline-block">
+      <Button
+        onMouseEnter={() => setTooltipState('showing')}
+        onMouseLeave={() => setTooltipState('hiding')}
+        onFocus={() => setTooltipState('shown')}
+        onBlur={() => setTooltipState('hidden')}
+        onClick={() => setTooltipState('hidden')}
+      >
+        button
+      </Button>
+      {(tooltipState === 'shown' || tooltipState === 'hiding') && (
+        <div
+          onMouseEnter={() => setTooltipState('shown')}
           onMouseLeave={() => setTooltipState('hiding')}
-          onClick={() => setTooltipState('hidden')}
+          className="absolute top-full left-0 p-3 shadow mt-px bg-white"
         >
-          button
-        </Button>
-        {(tooltipState === 'shown' || tooltipState === 'hiding') && (
-          <div
-            onMouseEnter={() => setTooltipState('shown')}
-            onMouseLeave={() => setTooltipState('hiding')}
-            className="absolute top-full left-0 p-3 shadow mt-px bg-white"
-          >
-            <p>Some tooltip content that is not essential</p>
-          </div>
-        )}
-      </div>
+          <p>Some tooltip content that is not essential</p>
+        </div>
+      )}
     </div>
   );
 };
 
-const StateImpl = () => {
+const TooltipAlt = () => {
   const [currentState, send] = useMachine(tooltipMachine);
 
   return (
-    <div>
-      <div>{currentState.toStrings().join('.')}</div>
-      <div className="relative">
-        <Button
-          onMouseEnter={() => {
-            send('MOUSE_ENTER_ANCHOR');
-          }}
-          onMouseLeave={() => send('MOUSE_LEAVE_ANCHOR')}
-          onClick={() => send('MOUSE_CLICK_ANCHOR')}
+    <div className="relative inline-block">
+      <Button
+        onMouseEnter={() => {
+          send('MOUSE_ENTER_TRIGGER');
+        }}
+        onMouseLeave={() => send('MOUSE_LEAVE_TRIGGER')}
+        onFocus={() => send('TRIGGER_FOCUSED')}
+        onBlur={() => send('TRIGGER_BLURRED')}
+        onClick={() => send('MOUSE_CLICK_TRIGGER')}
+      >
+        button
+      </Button>
+      {(currentState.matches('shown') || currentState.matches('hiding')) && (
+        <div
+          onMouseEnter={() => send('MOUSE_ENTER_TOOLTIP')}
+          onMouseLeave={() => send('MOUSE_LEAVE_TOOLTIP')}
+          className="absolute top-full left-0 p-3 shadow mt-px bg-white"
         >
-          button
-        </Button>
-        {(currentState.matches('shown') || currentState.matches('hiding')) && (
-          <div
-            onMouseEnter={() => send('MOUSE_ENTER_TOOLTIP')}
-            onMouseLeave={() => send('MOUSE_LEAVE_TOOLTIP')}
-            className="absolute top-full left-0 p-3 shadow mt-px bg-white"
-          >
-            <p>Some tooltip content that is not essential</p>
-          </div>
-        )}
-      </div>
+          <p>Some tooltip content that is not essential</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -119,20 +112,26 @@ const tooltipMachine = createMachine(
     states: {
       hidden: {
         on: {
-          MOUSE_ENTER_ANCHOR: {
+          MOUSE_ENTER_TRIGGER: {
             target: 'showing',
+          },
+          TRIGGER_FOCUSED: {
+            target: 'shown',
           },
         },
       },
       shown: {
         on: {
-          MOUSE_LEAVE_ANCHOR: {
+          MOUSE_LEAVE_TRIGGER: {
             target: 'hiding',
           },
           MOUSE_LEAVE_TOOLTIP: {
             target: 'hiding',
           },
-          MOUSE_CLICK_ANCHOR: {
+          MOUSE_CLICK_TRIGGER: {
+            target: 'hidden',
+          },
+          TRIGGER_BLURRED: {
             target: 'hidden',
           },
         },
@@ -146,10 +145,10 @@ const tooltipMachine = createMachine(
           },
         },
         on: {
-          MOUSE_LEAVE_ANCHOR: {
+          MOUSE_LEAVE_TRIGGER: {
             target: 'hidden',
           },
-          MOUSE_CLICK_ANCHOR: {
+          MOUSE_CLICK_TRIGGER: {
             target: 'hidden',
           },
         },
@@ -163,13 +162,13 @@ const tooltipMachine = createMachine(
           },
         },
         on: {
-          MOUSE_ENTER_ANCHOR: {
+          MOUSE_ENTER_TRIGGER: {
             target: 'shown',
           },
           MOUSE_ENTER_TOOLTIP: {
             target: 'shown',
           },
-          MOUSE_CLICK_ANCHOR: {
+          MOUSE_CLICK_TRIGGER: {
             target: 'hidden',
           },
         },
@@ -178,11 +177,13 @@ const tooltipMachine = createMachine(
     schema: {
       context: {} as {},
       events: {} as
-        | { type: 'MOUSE_LEAVE_ANCHOR' }
-        | { type: 'MOUSE_ENTER_ANCHOR' }
+        | { type: 'MOUSE_LEAVE_TRIGGER' }
+        | { type: 'MOUSE_ENTER_TRIGGER' }
+        | { type: 'TRIGGER_FOCUSED' }
+        | { type: 'TRIGGER_BLURRED' }
         | { type: 'MOUSE_ENTER_TOOLTIP' }
         | { type: 'MOUSE_LEAVE_TOOLTIP' }
-        | { type: 'MOUSE_CLICK_ANCHOR' },
+        | { type: 'MOUSE_CLICK_TRIGGER' },
     },
     context: {},
     predictableActionArguments: true,
